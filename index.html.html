@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Karya Admin — Bulk Payment Safety Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green: #1D9E75;
+    --green-dark: #0F6E56;
+    --green-light: #E1F5EE;
+    --amber: #EF9F27;
+    --amber-dark: #BA7517;
+    --amber-bg: #FAEEDA;
+    --amber-text: #633806;
+    --red: #E24B4A;
+    --red-dark: #A32D2D;
+    --red-bg: #FCEBEB;
+    --red-text: #501313;
+    --tag-green-bg: #EAF3DE;
+    --tag-green-text: #27500A;
+    --tag-green-border: #639922;
+    --bg: #f7f7f5;
+    --surface: #ffffff;
+    --surface-2: #f4f4f1;
+    --border: rgba(0,0,0,0.10);
+    --border-md: rgba(0,0,0,0.16);
+    --text: #1a1a18;
+    --text-2: #5c5c58;
+    --text-3: #9a9a94;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); font-size: 15px; min-height: 100vh; }
+
+  /* NAV */
+  .nav { display: flex; align-items: center; gap: 14px; padding: 0 24px; height: 52px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+  .nav-logo { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+  .nav-logo span { color: var(--green); }
+  .nav-sep { width: 1px; height: 18px; background: var(--border-md); }
+  .nav-crumbs { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); }
+  .nav-crumbs .current { color: var(--text); font-weight: 500; }
+  .nav-badge { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px 10px; }
+
+  /* PAGE */
+  .page { max-width: 820px; margin: 0 auto; padding: 28px 24px 60px; }
+
+  /* STEPPER */
+  .stepper { display: flex; align-items: center; margin-bottom: 32px; }
+  .step-item { display: flex; align-items: center; gap: 10px; }
+  .step-dot { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; border: 1.5px solid var(--border-md); background: var(--surface); color: var(--text-2); transition: all 0.2s; }
+  .step-dot.active { background: var(--green); border-color: var(--green); color: #fff; }
+  .step-dot.done { background: var(--green-light); border-color: var(--green); color: var(--green-dark); }
+  .step-label { font-size: 13px; color: var(--text-2); font-weight: 400; white-space: nowrap; }
+  .step-label.active { color: var(--green-dark); font-weight: 500; }
+  .step-label.done { color: var(--text-2); }
+  .step-line { flex: 1; height: 1px; background: var(--border); margin: 0 10px; min-width: 20px; }
+
+  /* SCREENS */
+  .screen { display: none; animation: fadeIn 0.18s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* HEADINGS */
+  .page-title { font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .page-sub { font-size: 14px; color: var(--text-2); margin-bottom: 24px; line-height: 1.5; }
+
+  /* CARDS */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 16px; }
+  .section-label { font-size: 11px; font-weight: 600; color: var(--text-3); letter-spacing: 0.6px; text-transform: uppercase; margin-bottom: 14px; }
+
+  /* FORM ELEMENTS */
+  .field-row { margin-bottom: 18px; }
+  .field-label { font-size: 13px; color: var(--text-2); margin-bottom: 6px; font-weight: 500; }
+  select, input[type="text"] {
+    width: 100%; font-size: 14px; padding: 9px 12px; border: 1px solid var(--border-md);
+    border-radius: var(--radius); background: var(--surface); color: var(--text);
+    font-family: var(--sans); appearance: none; transition: border-color 0.15s;
+    outline: none;
+  }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239a9a94' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+  select:focus, input[type="text"]:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(29,158,117,0.12); }
+  input.error { border-color: var(--red) !important; box-shadow: 0 0 0 3px rgba(226,75,74,0.10) !important; }
+
+  /* BUTTONS */
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; font-family: var(--sans); border: 1px solid; transition: all 0.15s; text-decoration: none; }
+  .btn-primary { background: var(--green); color: #fff; border-color: var(--green); }
+  .btn-primary:hover { background: var(--green-dark); border-color: var(--green-dark); }
+  .btn-danger { background: var(--red-dark); color: #fff; border-color: var(--red-dark); }
+  .btn-danger:hover { background: #701e1e; border-color: #701e1e; }
+  .btn-danger:disabled { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+  .btn-ghost { background: transparent; color: var(--text); border-color: var(--border-md); }
+  .btn-ghost:hover { background: var(--surface-2); }
+  .btn-row { display: flex; gap: 12px; align-items: center; margin-top: 20px; flex-wrap: wrap; }
+
+  /* METRIC CARDS */
+  .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .metric-card { background: var(--surface-2); border-radius: var(--radius); padding: 14px 16px; }
+  .metric-label { font-size: 12px; color: var(--text-2); margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+  .metric-val { font-size: 24px; font-weight: 600; color: var(--text); line-height: 1.1; }
+  .metric-sub { font-size: 12px; color: var(--text-2); margin-top: 5px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+  /* WARNING BANNER */
+  .warning-banner { background: var(--amber-bg); border: 1px solid var(--amber); border-radius: var(--radius); padding: 14px 16px; display: flex; gap: 12px; margin-bottom: 16px; }
+  .warning-banner i { color: var(--amber-dark); font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .warning-body { font-size: 13px; color: var(--amber-text); line-height: 1.6; }
+  .warning-body strong { font-weight: 600; }
+
+  /* TAGS */
+  .tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 20px; border: 1px solid; font-weight: 500; }
+  .tag-amber { background: var(--amber-bg); color: var(--amber-text); border-color: var(--amber); }
+  .tag-green { background: var(--tag-green-bg); color: var(--tag-green-text); border-color: var(--tag-green-border); }
+  .tag-red { background: var(--red-bg); color: var(--red-text); border-color: var(--red); }
+
+  /* PROJECT BOX */
+  .project-box { background: var(--surface-2); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; }
+  .project-name { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .project-meta { font-size: 13px; color: var(--text-2); }
+
+  /* COMPARISON TABLE */
+  .compare-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .compare-table th { text-align: left; font-weight: 500; color: var(--text-2); padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .compare-table th:not(:first-child) { text-align: right; }
+  .compare-table td { padding: 10px 0; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+  .compare-table td:not(:first-child) { text-align: right; }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table .row-label { color: var(--text-2); font-size: 13px; }
+  .compare-table .highlight { font-weight: 600; }
+
+  /* WORKER LIST */
+  .worker-sample { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; }
+  .worker-sample-label { font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
+  .worker-ids { font-family: var(--mono); font-size: 11px; color: var(--text-2); line-height: 2; }
+
+  /* FREEZE NOTE */
+  .freeze-note { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-3); margin-top: 14px; }
+
+  /* CONFIRM FIELD */
+  .confirm-label { font-size: 13px; color: var(--text-2); margin-bottom: 8px; line-height: 1.6; }
+  .confirm-label code { font-family: var(--mono); background: var(--surface-2); padding: 2px 7px; border-radius: 5px; font-size: 12px; color: var(--text); border: 1px solid var(--border); }
+  .field-error { font-size: 12px; color: var(--red-dark); margin-top: 6px; display: none; }
+  .field-error.show { display: block; }
+
+  /* DIVIDER */
+  .divider { height: 1px; background: var(--border); margin: 18px 0; }
+
+  /* EXECUTION NOTE */
+  .exec-note { font-size: 13px; color: var(--text-2); line-height: 1.7; display: flex; gap: 10px; align-items: flex-start; }
+  .exec-note i { font-size: 16px; flex-shrink: 0; color: var(--text-3); margin-top: 2px; }
+
+  /* SUCCESS */
+  .success-wrap { text-align: center; padding: 32px 24px; }
+  .success-icon-ring { width: 60px; height: 60px; border-radius: 50%; background: var(--green-light); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+  .success-icon-ring i { font-size: 30px; color: var(--green-dark); }
+  .success-title { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+  .success-sub { font-size: 13px; color: var(--text-2); margin-bottom: 24px; }
+
+  /* AUDIT LOG */
+  .audit-log { text-align: left; border-top: 1px solid var(--border); padding-top: 16px; }
+  .log-row { display: flex; gap: 12px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .log-row:last-child { border-bottom: none; }
+  .log-time { font-family: var(--mono); font-size: 11px; color: var(--text-3); flex-shrink: 0; width: 62px; padding-top: 1px; }
+  .log-text { color: var(--text-2); line-height: 1.5; }
+  .log-text strong { color: var(--text); font-weight: 500; }
+  .log-badge { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--green-light); color: var(--green-dark); font-weight: 600; margin-left: 4px; }
+
+  /* SCREEN 1 EXTRAS */
+  .info-pill { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 12px; color: var(--text-2); }
+
+  /* RESPONSIVE */
+  @media (max-width: 560px) {
+    .metrics-grid { grid-template-columns: 1fr; }
+    .nav-crumbs .crumb-mid { display: none; }
+    .page { padding: 20px 16px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo"><span>K</span>ARYA</div>
+  <div class="nav-sep"></div>
+  <div class="nav-crumbs">
+    <span>Payments</span>
+    <i class="ti ti-chevron-right" style="font-size:12px" aria-hidden="true"></i>
+    <span class="crumb-mid">Bulk transactions</span>
+    <i class="ti ti-chevron-right" style="font-size:12px;color:#9a9a94" aria-hidden="true"></i>
+    <span class="current">New bulk payment</span>
+  </div>
+  <div class="nav-badge">
+    <i class="ti ti-user" style="font-size:13px" aria-hidden="true"></i>
+    Priya M. &nbsp;·&nbsp; payments_ops
+  </div>
+</nav>
+
+<main class="page">
+
+  <!-- STEPPER -->
+  <div class="stepper" id="stepper">
+    <div class="step-item">
+      <div class="step-dot done" id="dot1"><i class="ti ti-check" style="font-size:12px" aria-hidden="true"></i></div>
+      <span class="step-label done" id="lbl1">Select project</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item">
+      <div class="step-dot active" id="dot2">2</div>
+      <span class="step-label active" id="lbl2">Review & verify</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item">
+      <div class="step-dot" id="dot3">3</div>
+      <span class="step-label" id="lbl3">Confirm & execute</span>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN 1: SELECT ===== -->
+  <div class="screen" id="s1">
+    <div class="page-title">Initiate bulk payment</div>
+    <div class="page-sub">Select the project and payment cycle. You will be shown a full dry-run preview before anything is executed.</div>
+
+    <div class="card">
+      <div class="section-label">Payment details</div>
+      <div class="field-row">
+        <div class="field-label">Project</div>
+        <select id="project-select">
+          <option value="">— Select a project —</option>
+          <option value="audio-mp">Audio Collection — MP (Madhya Pradesh)</option>
+          <option value="audio-rj">Audio Collection — RJ (Rajasthan)</option>
+          <option value="transcription-up">Transcription — UP Batch 3</option>
+          <option value="image-tag">Image Tagging — Pan India Q2</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <div class="field-label">Payment cycle</div>
+        <select id="cycle-select">
+          <option value="">— Select cycle —</option>
+          <option value="may-w3">May 2026 — Week 3</option>
+          <option value="may-w2">May 2026 — Week 2</option>
+          <option value="may-w1">May 2026 — Week 1</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:18px;display:flex;gap:10px;flex-wrap:wrap">
+        <span class="info-pill"><i class="ti ti-shield-check" style="font-size:13px;color:var(--green)" aria-hidden="true"></i> No payment executes without your review</span>
+        <span class="info-pill"><i class="ti ti-history" style="font-size:13px" aria-hidden="true"></i> All actions are logged in the audit trail</span>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="goToPreview()">
+          <i class="ti ti-eye" aria-hidden="true"></i> Generate payout preview
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN 2: PREVIEW ===== -->
+  <div class="screen active" id="s2">
+    <div class="page-title">Pre-execution dry-run review</div>
+    <div class="page-sub">This is a simulation only — no payment has been triggered. Review all details carefully before proceeding.</div>
+
+    <div class="warning-banner">
+      <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+      <div class="warning-body">
+        <strong>Anomaly detected — financial variance:</strong> This batch total (₹4,80,000) is <strong>71% higher</strong> than the 4-week rolling average for this project (₹2,80,000). Verify the worker count and pay rate before proceeding. If this increase is intentional, you may proceed.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Batch summary — dry run simulation</div>
+
+      <div class="project-box">
+        <div class="project-name">Audio Collection — MP (Madhya Pradesh)</div>
+        <div class="project-meta">Cycle: May 2026 — Week 3 &nbsp;&nbsp;·&nbsp;&nbsp; Initiated by: Priya M. &nbsp;&nbsp;·&nbsp;&nbsp; <span style="color:var(--green);font-weight:500">Simulation mode</span></div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label"><i class="ti ti-users" style="font-size:14px" aria-hidden="true"></i> Eligible workers</div>
+          <div class="metric-val">12,000</div>
+          <div class="metric-sub"><span class="tag tag-amber"><i class="ti ti-trending-up" style="font-size:11px" aria-hidden="true"></i> +4,200 vs. last cycle</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label"><i class="ti ti-currency-rupee" style="font-size:14px" aria-hidden="true"></i> Total payout</div>
+          <div class="metric-val">₹4,80,000</div>
+          <div class="metric-sub"><span class="tag tag-amber"><i class="ti ti-trending-up" style="font-size:11px" aria-hidden="true"></i> +71% vs. last run</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label"><i class="ti ti-coins" style="font-size:14px" aria-hidden="true"></i> Pay rate per worker</div>
+          <div class="metric-val">₹40</div>
+          <div class="metric-sub"><span class="tag tag-green">Unchanged from last cycle</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label"><i class="ti ti-clock" style="font-size:14px" aria-hidden="true"></i> Eligibility snapshot frozen</div>
+          <div class="metric-val" style="font-size:16px;margin-top:4px">14:32:07 IST</div>
+          <div class="metric-sub" style="color:var(--text-3)">Execution uses this exact list</div>
+        </div>
+      </div>
+
+      <div class="worker-sample">
+        <div class="worker-sample-label">Sample of first 5 worker IDs in this batch <span style="font-style:italic">(assumption: worker IDs visible to ops team)</span></div>
+        <div class="worker-ids">WRK-00112 &nbsp;·&nbsp; WRK-00238 &nbsp;·&nbsp; WRK-00391 &nbsp;·&nbsp; WRK-00445 &nbsp;·&nbsp; WRK-00512 &nbsp;&nbsp;<span style="color:var(--text-3)">+11,995 more</span></div>
+      </div>
+
+      <div class="freeze-note">
+        <i class="ti ti-lock" style="font-size:14px" aria-hidden="true"></i>
+        Worker eligibility list is frozen at snapshot time. Any account changes after 14:32:07 will not affect this batch.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Comparison with previous run — same project</div>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th style="width:36%">Metric</th>
+            <th>May Week 2 (last run)</th>
+            <th>May Week 3 (this run)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="row-label">Workers</td>
+            <td>7,800</td>
+            <td class="highlight">12,000 &nbsp;<span class="tag tag-amber">+54%</span></td>
+          </tr>
+          <tr>
+            <td class="row-label">Total payout</td>
+            <td>₹2,80,000</td>
+            <td class="highlight">₹4,80,000 &nbsp;<span class="tag tag-amber">+71%</span></td>
+          </tr>
+          <tr>
+            <td class="row-label">Pay rate</td>
+            <td>₹40</td>
+            <td class="highlight">₹40 &nbsp;<span class="tag tag-green">Same</span></td>
+          </tr>
+          <tr>
+            <td class="row-label">Failed txns (last run)</td>
+            <td>142 workers</td>
+            <td style="color:var(--text-3);font-size:12px">Pending — post-execution</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goToConfirm()">
+        <i class="ti ti-arrow-right" aria-hidden="true"></i> Proceed to confirm
+      </button>
+      <button class="btn btn-ghost" onclick="goToSelect()">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i> Change project / cycle
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN 3: CONFIRM ===== -->
+  <div class="screen" id="s3">
+    <div class="page-title">Confirm & execute</div>
+    <div class="page-sub">This is your final step. Type the project name exactly as shown below to unlock execution. This action cannot be automatically reversed.</div>
+
+    <div class="card">
+      <div class="section-label">You are about to execute</div>
+      <div class="project-box" style="margin-bottom:20px">
+        <div class="project-name">Audio Collection — MP (Madhya Pradesh)</div>
+        <div class="project-meta">12,000 workers &nbsp;·&nbsp; ₹4,80,000 total &nbsp;·&nbsp; May 2026 — Week 3</div>
+      </div>
+
+      <div class="field-row">
+        <div class="confirm-label">To confirm, type the project name exactly: <code>Audio Collection — MP</code></div>
+        <input type="text" id="confirm-input" placeholder="Type project name here to unlock…" oninput="checkConfirm()" autocomplete="off" spellcheck="false" />
+        <div class="field-error" id="confirm-error">Project name does not match. Type exactly as shown above.</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="exec-note">
+        <i class="ti ti-info-circle" aria-hidden="true"></i>
+        <span>Once executed, payment transactions begin processing immediately across <strong>12,000 workers</strong> totalling <strong>₹4,80,000</strong>. Stopping mid-execution requires manual intervention by a senior ops lead. The full interaction — including metrics shown in this review and time spent on the preview screen — will be recorded in the platform audit trail.</span>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-danger" id="execute-btn" onclick="execute()" disabled>
+        <i class="ti ti-send" aria-hidden="true"></i> Confirm & disburse payment
+      </button>
+      <button class="btn btn-ghost" onclick="goToPreview()">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to review
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN 4: SUCCESS ===== -->
+  <div class="screen" id="s4">
+    <div class="card">
+      <div class="success-wrap">
+        <div class="success-icon-ring">
+          <i class="ti ti-check" aria-hidden="true"></i>
+        </div>
+        <div class="success-title">Bulk payment initiated successfully</div>
+        <div class="success-sub">12,000 transactions queued &nbsp;·&nbsp; ₹4,80,000 &nbsp;·&nbsp; May 2026 — Week 3</div>
+
+        <div class="audit-log">
+          <div class="section-label">Execution audit log — auto-recorded</div>
+          <div class="log-row">
+            <span class="log-time">14:32:07</span>
+            <span class="log-text"><strong>Priya M.</strong> opened bulk payment screen for Audio Collection — MP</span>
+          </div>
+          <div class="log-row">
+            <span class="log-time">14:34:19</span>
+            <span class="log-text"><strong>Priya M.</strong> viewed pre-execution dry-run preview — dwell time: 2m 12s <span class="log-badge">REVIEWED</span></span>
+          </div>
+          <div class="log-row">
+            <span class="log-time">14:35:01</span>
+            <span class="log-text"><strong>Priya M.</strong> acknowledged anomaly flag (+71% vs. 4-week average) and proceeded</span>
+          </div>
+          <div class="log-row">
+            <span class="log-time">14:36:44</span>
+            <span class="log-text"><strong>Priya M.</strong> entered typed confirmation for "Audio Collection — MP" and initiated payment batch <span class="log-badge">EXECUTED</span></span>
+          </div>
+        </div>
+
+        <div style="margin-top:24px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="restart()">
+            <i class="ti ti-refresh" aria-hidden="true"></i> New bulk payment
+          </button>
+          <button class="btn btn-ghost">
+            <i class="ti ti-file-text" aria-hidden="true"></i> View transaction history
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+function setStep(active) {
+  for (var i = 1; i <= 3; i++) {
+    var dot = document.getElementById('dot' + i);
+    var lbl = document.getElementById('lbl' + i);
+    dot.className = 'step-dot';
+    lbl.className = 'step-label';
+    dot.innerHTML = i;
+    if (i < active) {
+      dot.classList.add('done');
+      lbl.classList.add('done');
+      dot.innerHTML = '<i class="ti ti-check" style="font-size:12px" aria-hidden="true"></i>';
+    } else if (i === active) {
+      dot.classList.add('active');
+      lbl.classList.add('active');
+    }
+  }
+}
+
+function showScreen(id, step) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  if (step) setStep(step);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goToSelect() { showScreen('s1', 1); }
+function goToPreview() { showScreen('s2', 2); }
+function goToConfirm() { showScreen('s3', 3); document.getElementById('confirm-input').value = ''; checkConfirm(); }
+
+function checkConfirm() {
+  var val = document.getElementById('confirm-input').value;
+  var btn = document.getElementById('execute-btn');
+  var err = document.getElementById('confirm-error');
+  var input = document.getElementById('confirm-input');
+  var target = 'Audio Collection \u2014 MP';
+  if (val === target) {
+    btn.disabled = false;
+    err.classList.remove('show');
+    input.classList.remove('error');
+  } else {
+    btn.disabled = true;
+    if (val.length > 6) {
+      err.classList.add('show');
+      input.classList.add('error');
+    } else {
+      err.classList.remove('show');
+      input.classList.remove('error');
+    }
+  }
+}
+
+function execute() { showScreen('s4', 4); }
+
+function restart() {
+  document.getElementById('project-select').value = '';
+  document.getElementById('cycle-select').value = '';
+  document.getElementById('confirm-input').value = '';
+  checkConfirm();
+  showScreen('s1', 1);
+}
+
+// Start on screen 1
+setStep(1);
+document.getElementById('s1').classList.add('active');
+document.getElementById('s2').classList.remove('active');
+</script>
+</body>
+</html>
